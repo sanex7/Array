@@ -103,4 +103,94 @@ public:
         }
         return maxVal;
     }
+
+    Array& operator=(const Array& other) {
+        if (this != &other) {
+            delete[] arr;
+            size = other.size;
+            arr = new int[size];
+            for (size_t i = 0; i < size; ++i) {
+                arr[i] = other.arr[i];
+            }
+        }
+        return *this;
+    }
+
+    Array operator+(const Array& other) const {
+        size_t newSize = size + other.size;
+        Array result(newSize);
+        for (size_t i = 0; i < size; ++i) {
+            result.arr[i] = arr[i];
+        }
+        for (size_t i = 0; i < other.size; ++i) {
+            result.arr[size + i] = other.arr[i];
+        }
+        return result;
+    }
+
+    Array& operator+=(const Array& other) {
+        size_t newSize = size + other.size;
+        int* newArr = new int[newSize];
+        for (size_t i = 0; i < size; ++i) {
+            newArr[i] = arr[i];
+        }
+        for (size_t i = 0; i < other.size; ++i) {
+            newArr[size + i] = other.arr[i];
+        }
+        delete[] arr;
+        arr = newArr;
+        size = newSize;
+        return *this;
+    }
+
+    int& operator[](size_t index) {
+        if (index >= size) throw out_of_range("Index out of range");
+        return arr[index];
+    }
+
+    const int& operator[](size_t index) const {
+        if (index >= size) throw out_of_range("Index out of range");
+        return arr[index];
+    }
+
+    bool operator==(const Array& other) const {
+        if (size != other.size) return false;
+        for (size_t i = 0; i < size; ++i) {
+            if (arr[i] != other.arr[i]) return false;
+        }
+        return true;
+    }
+
+    bool operator!=(const Array& other) const {
+        return !(*this == other);
+    }
+
+    bool operator>(const Array& other) const {
+        return size > other.size;
+    }
+
+    bool operator<(const Array& other) const {
+        return size < other.size;
+    }
+
+    friend ostream& operator<<(ostream& os, const Array& array) {
+        for (size_t i = 0; i < array.size; ++i) {
+            os << array.arr[i] << " ";
+        }
+        return os;
+    }
+
+    Array operator*(const Array& other) const {
+        Array result(0);
+        for (size_t i = 0; i < size; ++i) {
+            for (size_t j = 0; j < other.size; ++j) {
+                if (arr[i] == other.arr[j]) {
+                    result.resize(result.size + 1);
+                    result.arr[result.size - 1] = arr[i];
+                    break;
+                }
+            }
+        }
+        return result;
+    }
 };
