@@ -41,6 +41,11 @@ public:
         }
     }
 
+    Array(Array&& other) noexcept : arr(other.arr), size(other.size) {
+        other.arr = nullptr;
+        other.size = 0;
+    }
+
     ~Array() {
         delete[] arr;
     }
@@ -140,6 +145,17 @@ public:
         delete[] arr;
         arr = newArr;
         size = newSize;
+        return *this;
+    }
+
+    Array& operator=(Array&& other) noexcept {
+        if (this != &other) {
+            delete[] arr;
+            arr = other.arr;
+            size = other.size;
+            other.arr = nullptr;
+            other.size = 0;
+        }
         return *this;
     }
 
