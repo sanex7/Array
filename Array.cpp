@@ -1,23 +1,33 @@
 #include <iostream>
+#include <stdexcept>
 #include <cstdlib>
-#include <ctime> 
+#include <ctime>
 using namespace std;
 
+template<typename T>
 class Array {
 private:
-    int* arr;
+    T* arr;
     size_t size;
+    size_t capacity;
 
-public:
-    Array(size_t n = 10) : size(n) {
-        arr = new int[size];
+    void reallocate(size_t newCapacity) {
+        T* newArr = new T[newCapacity];
         for (size_t i = 0; i < size; ++i) {
-            arr[i] = 0;
+            newArr[i] = arr[i];
         }
+        delete[] arr;
+        arr = newArr;
+        capacity = newCapacity;
     }
 
-    Array(size_t n, bool randomize) : size(n) {
-        arr = new int[size];
+public:
+    Array(size_t initialCapacity = 10) : size(0), capacity(initialCapacity) {
+        arr = new T[capacity];
+    }
+
+    Array(size_t n, bool randomize) : size(n), capacity(n) {
+        arr = new T[capacity];
         if (randomize) {
             srand(static_cast<unsigned>(time(0)));
             for (size_t i = 0; i < size; ++i) {
@@ -26,125 +36,87 @@ public:
         }
     }
 
-    Array(size_t n, int min, int max) : size(n) {
-        arr = new int[size];
+    Array(size_t n, T min, T max) : size(n), capacity(n) {
+        arr = new T[capacity];
         srand(static_cast<unsigned>(time(0)));
         for (size_t i = 0; i < size; ++i) {
             arr[i] = min + rand() % (max - min + 1);
         }
     }
 
-    Array(const Array& other) : size(other.size) {
-        arr = new int[size];
+    Array(const Array& other) : size(other.size), capacity(other.capacity) {
+        arr = new T[capacity];
         for (size_t i = 0; i < size; ++i) {
             arr[i] = other.arr[i];
         }
     }
 
-    Array(Array&& other) noexcept : arr(other.arr), size(other.size) {
+    Array(Array&& other) noexcept : arr(other.arr), size(other.size), capacity(other.capacity) {
         other.arr = nullptr;
         other.size = 0;
+        other.capacity = 0;
     }
 
     ~Array() {
         delete[] arr;
     }
 
-    void display() const {
-        for (size_t i = 0; i < size; ++i) {
-            cout << arr[i] << " ";
+    size_t getSize() const { return size; }
+    size_t getCapacity() const { return capacity; }
+
+    void append(const T& value) {
+        if (size >= capacity) {
+            reallocate(capacity * 2);
         }
-        cout << endl;
+        arr[size++] = value;
     }
 
-    void fillRandom(int min = 0, int max = 100) {
-        srand(static_cast<unsigned>(time(0)));
-        for (size_t i = 0; i < size; ++i) {
-            arr[i] = min + rand() % (max - min + 1);
+    void erase(size_t index) {
+        if (index >= size) {
+            throw out_of_range("Index out of range");
         }
+        for (size_t i = index; i < size - 1; ++i) {
+            arr[i] = arr[i + 1];
+        }
+        --size;
     }
 
-    void resize(size_t newSize) {
-        int* newArr = new int[newSize];
-        for (size_t i = 0; i < min(size, newSize); ++i) {
-            newArr[i] = arr[i];
-        }
-        for (size_t i = size; i < newSize; ++i) {
-            newArr[i] = 0;
-        }
-        delete[] arr;
-        arr = newArr;
-        size = newSize;
+    void clear() {
+        size = 0;
     }
 
-    void sort() {
-        for (size_t i = 0; i < size - 1; ++i) {
-            for (size_t j = 0; j < size - i - 1; ++j) {
-                if (arr[j] > arr[j + 1]) {
-                    int temp = arr[j];
-                    arr[j] = arr[j + 1];
-                    arr[j + 1] = temp;
-                }
-            }
+    void reserve(size_t newCapacity) {
+        if (newCapacity > capacity) {
+            reallocate(newCapacity);
         }
     }
 
-    int minValue() const {
-        int minVal = arr[0];
-        for (size_t i = 1; i < size; ++i) {
-            if (arr[i] < minVal) {
-                minVal = arr[i];
-            }
+    void shrink() {
+        if (size < capacity) {
+            reallocate(size);
         }
-        return minVal;
     }
 
-    int maxValue() const {
-        int maxVal = arr[0];
-        for (size_t i = 1; i < size; ++i) {
-            if (arr[i] > maxVal) {
-                maxVal = arr[i];
-            }
-        }
-        return maxVal;
+    T& operator[](size_t index) {
+        if (index >= size) throw out_of_range("Index out of range");
+        return arr[index];
+    }
+
+    const T& operator[](size_t index) const {
+        if (index >= size) throw out_of_range("Index out of range");
+        return arr[index];
     }
 
     Array& operator=(const Array& other) {
         if (this != &other) {
             delete[] arr;
             size = other.size;
-            arr = new int[size];
+            capacity = other.capacity;
+            arr = new T[capacity];
             for (size_t i = 0; i < size; ++i) {
                 arr[i] = other.arr[i];
             }
         }
-        return *this;
-    }
-
-    Array operator+(const Array& other) const {
-        size_t newSize = size + other.size;
-        Array result(newSize);
-        for (size_t i = 0; i < size; ++i) {
-            result.arr[i] = arr[i];
-        }
-        for (size_t i = 0; i < other.size; ++i) {
-            result.arr[size + i] = other.arr[i];
-        }
-        return result;
-    }
-
-    Array& operator+=(const Array& other) {
-        size_t newSize = size + other.size;
-        int* newArr = new int[newSize];
-        for (size_t i = 0; i < size; ++i) {
-            newArr[i] = arr[i];
-        }
-        for (size_t i = 0; i < other.size; ++i) {
-            newArr[size + i] = other.arr[i];
-        }
-        delete[] arr;
-        arr = newArr;
-        size = newSize;
         return *this;
     }
 
@@ -153,60 +125,37 @@ public:
             delete[] arr;
             arr = other.arr;
             size = other.size;
+            capacity = other.capacity;
             other.arr = nullptr;
             other.size = 0;
+            other.capacity = 0;
         }
         return *this;
     }
 
-    int& operator[](size_t index) {
-        if (index >= size) throw out_of_range("Index out of range");
-        return arr[index];
-    }
-
-    const int& operator[](size_t index) const {
-        if (index >= size) throw out_of_range("Index out of range");
-        return arr[index];
-    }
-
-    bool operator==(const Array& other) const {
-        if (size != other.size) return false;
+    void display() const {
         for (size_t i = 0; i < size; ++i) {
-            if (arr[i] != other.arr[i]) return false;
+            cout << arr[i] << " ";
         }
-        return true;
-    }
-
-    bool operator!=(const Array& other) const {
-        return !(*this == other);
-    }
-
-    bool operator>(const Array& other) const {
-        return size > other.size;
-    }
-
-    bool operator<(const Array& other) const {
-        return size < other.size;
-    }
-
-    friend ostream& operator<<(ostream& os, const Array& array) {
-        for (size_t i = 0; i < array.size; ++i) {
-            os << array.arr[i] << " ";
-        }
-        return os;
-    }
-
-    Array operator*(const Array& other) const {
-        Array result(0);
-        for (size_t i = 0; i < size; ++i) {
-            for (size_t j = 0; j < other.size; ++j) {
-                if (arr[i] == other.arr[j]) {
-                    result.resize(result.size + 1);
-                    result.arr[result.size - 1] = arr[i];
-                    break;
-                }
-            }
-        }
-        return result;
+        cout << endl;
     }
 };
+
+int main() {
+    Array<int> numbers;
+    numbers.append(1);
+    numbers.append(2);
+    numbers.append(3);
+    numbers.display();
+
+    numbers.erase(1);
+    numbers.display();
+
+    numbers.reserve(10);
+    cout << "Capacity: " << numbers.getCapacity() << endl;
+
+    numbers.shrink();
+    cout << "Capacity after shrink: " << numbers.getCapacity() << endl;
+
+    return 0;
+}
