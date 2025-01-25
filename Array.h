@@ -4,6 +4,19 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
+#include <exception>
+
+class ArrayException : public std::exception {
+private:
+    std::string message;
+
+public:
+    explicit ArrayException(const std::string& msg) : message(msg) {}
+    const char* what() const noexcept override {
+        return message.c_str();
+    }
+};
 
 template<typename T>
 class Array {
@@ -13,7 +26,10 @@ private:
     size_t capacity;
 
     void reallocate(size_t newCapacity) {
-        T* newArr = new T[newCapacity];
+        T* newArr = new (std::nothrow) T[newCapacity];
+        if (!newArr) {
+            throw ArrayException("Memory allocation failed during reallocation.");
+        }
         for (size_t i = 0; i < size; ++i) {
             newArr[i] = arr[i];
         }
@@ -24,11 +40,17 @@ private:
 
 public:
     Array(size_t initialCapacity = 10) : size(0), capacity(initialCapacity) {
-        arr = new T[capacity];
+        arr = new (std::nothrow) T[capacity];
+        if (!arr) {
+            throw ArrayException("Memory allocation failed during initialization.");
+        }
     }
 
     Array(size_t n, bool randomize) : size(n), capacity(n) {
-        arr = new T[capacity];
+        arr = new (std::nothrow) T[capacity];
+        if (!arr) {
+            throw ArrayException("Memory allocation failed during initialization.");
+        }
         if (randomize) {
             srand(static_cast<unsigned>(time(0)));
             for (size_t i = 0; i < size; ++i) {
@@ -38,7 +60,13 @@ public:
     }
 
     Array(size_t n, T min, T max) : size(n), capacity(n) {
-        arr = new T[capacity];
+        if (min > max) {
+            throw ArrayException("Invalid range: min is greater than max.");
+        }
+        arr = new (std::nothrow) T[capacity];
+        if (!arr) {
+            throw ArrayException("Memory allocation failed during initialization.");
+        }
         srand(static_cast<unsigned>(time(0)));
         for (size_t i = 0; i < size; ++i) {
             arr[i] = min + rand() % (max - min + 1);
@@ -46,7 +74,10 @@ public:
     }
 
     Array(const Array& other) : size(other.size), capacity(other.capacity) {
-        arr = new T[capacity];
+        arr = new (std::nothrow) T[capacity];
+        if (!arr) {
+            throw ArrayException("Memory allocation failed during copy.");
+        }
         for (size_t i = 0; i < size; ++i) {
             arr[i] = other.arr[i];
         }
@@ -73,8 +104,11 @@ public:
     }
 
     void erase(size_t index) {
+        if (size == 0) {
+            throw ArrayException("Cannot erase from an empty array.");
+        }
         if (index >= size) {
-            throw std::out_of_range("Index out of range");
+            throw ArrayException("Index out of range.");
         }
         for (size_t i = index; i < size - 1; ++i) {
             arr[i] = arr[i + 1];
@@ -99,12 +133,16 @@ public:
     }
 
     T& operator[](size_t index) {
-        if (index >= size) throw std::out_of_range("Index out of range");
+        if (index >= size) {
+            throw ArrayException("Index out of range.");
+        }
         return arr[index];
     }
 
     const T& operator[](size_t index) const {
-        if (index >= size) throw std::out_of_range("Index out of range");
+        if (index >= size) {
+            throw ArrayException("Index out of range.");
+        }
         return arr[index];
     }
 
@@ -113,7 +151,10 @@ public:
             delete[] arr;
             size = other.size;
             capacity = other.capacity;
-            arr = new T[capacity];
+            arr = new (std::nothrow) T[capacity];
+            if (!arr) {
+                throw ArrayException("Memory allocation failed during assignment.");
+            }
             for (size_t i = 0; i < size; ++i) {
                 arr[i] = other.arr[i];
             }
